@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Inbox Tycoon</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: white;
+}
+
+#money {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.money-float {
+  position: fixed;
+  top: 40px;
+  right: 16px;
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+#inboxBtn {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: none;
+  font-size: 24px;
+  background: #999;
+  color: white;
+  cursor: pointer;
+}
+
+#inbox {
+  position: fixed;
+  bottom: 100px;
+  left: 20px;
+  width: 330px;
+  max-height: 420px;
+  overflow-y: auto;
+  background: #f5f5f5;
+  border: 1px solid #ccc;
+  padding: 12px;
+  display: none;
+}
+
+.order {
+  background: white;
+  border: 1px solid #ddd;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+.frozen {
+  background: #444 !important;
+  color: #aaa !important;
+  cursor: not-allowed;
+}
+
+#actions {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #eee;
+  padding: 10px;
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn {
+  width: 60px;
+  height: 40px;
+  border-radius: 8px;
+}
+
+#modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-box {
+  background: white;
+  padding: 20px;
+  width: 320px;
+}
+
+#workersArea {
+  position: fixed;
+  top: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 20px;
+}
+
+.worker-emoji {
+  font-size: 32px;
+  cursor: pointer;
+  position: relative;
+}
+
+.worker-panel {
+  position: absolute;
+  top: 40px;
+  left: -40px;
+  background: white;
+  border: 1px solid #ccc;
+  padding: 8px;
+  width: 160px;
+  z-index: 10;
+}
+</style>
+</head>
+
+<body>
+
+<div id="money">💰 $20</div>
+<div id="moneyFloat" class="money-float"></div>
+
+<button id="inboxBtn">📦</button>
+<div id="inbox"><div id="orders"></div></div>
+
+<div id="actions">
+  <button class="action-btn" id="hireBtn">Hire</button>
+  <button class="action-btn">Store</button>
+  <button class="action-btn">Ads</button>
+  <button class="action-btn">Upg</button>
+</div>
+
+<div id="modal">
+  <div class="modal-box" id="hireList"></div>
+</div>
+
+<div id="workersArea"></div>
+
+<script>
+let money = 20;
+let frozen = false;
+let lastHire = 0;
+
+const firstNames = ["Pablo","Mike","Matthew","Andre","Malik","Isaiah","Noah","Dylan","Evan","Jordan","Alex","Sam","Chris","Taylor"];
+const lastNames = ["West","Carter","Mason","Thompson","Walker","Reed","Dean","Harris","Young","Turner","Scott"];
+const streets = ["Yeezus Rd","Pablo Ave","Donda Dr","Graduation Blvd","Late Reg Way","Wyoming Ranch Rd"];
+
+const moneyDiv = document.getElementById("money");
+const floatDiv = document.getElementById("moneyFloat");
+const inboxBtn = document.getElementById("inboxBtn");
+const inbox = document.getElementById("inbox");
+const ordersDiv = document.getElementById("orders");
+const modal = document.getElementById("modal");
+const hireList = document.getElementById("hireList");
+const workersArea = document.getElementById("workersArea");
+
+function rand(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+function showMoneyChange(val){
+  floatDiv.textContent = (val > 0 ? "+" : "-") + "$" + Math.abs(val);
+  floatDiv.style.color = val > 0 ? "green" : "red";
+  floatDiv.style.opacity = 1;
+  setTimeout(()=>floatDiv.style.opacity = 0, 2000);
+}
+
+function updateMoney(val){
+  money += val;
+  moneyDiv.textContent = `💰 $${money}`;
+  showMoneyChange(val);
+}
+
+inboxBtn.onclick = () => inbox.style.display = inbox.style.display==="none"?"block":"none";
+
+function createOrder(){
+  const order = document.createElement("div");
+  order.className = "order";
+  const payout = Math.floor(Math.random()*30)+5;
+
+  order.innerHTML = `
+    <b>${rand(firstNames)} ${rand(lastNames)}</b><br>
+    ${Math.floor(Math.random()*999)} ${rand(streets)}<br>
+    Earn $${payout}<br>
+    <button class="ship">Ship</button>
+    <button class="cancel">Cancel</button>
+  `;
+
+  const ship = order.querySelector(".ship");
+  const cancel = order.querySelector(".cancel");
+
+  if(frozen){ ship.classList.add("frozen"); cancel.classList.add("frozen"); }
+
+  ship.onclick = ()=>{
+    if(frozen) return;
+    frozen = true;
+    document.querySelectorAll(".order button").forEach(b=>b.classList.add("frozen"));
+    setTimeout(()=>{ frozen=false; document.querySelectorAll(".order button").forEach(b=>b.classList.remove("frozen")); },30000);
+    updateMoney(payout-4);
+    order.remove();
+  };
+
+  cancel.onclick = ()=>{
+    if(frozen) return;
+    updateMoney(-2);
+    order.remove();
+  };
+
+  ordersDiv.appendChild(order);
+  inboxBtn.style.background = "#5fa68a";
+}
+
+setInterval(()=>{ if(Math.random()<0.6) createOrder(); },8000);
+
+document.getElementById("hireBtn").onclick = ()=>{
+  if(Date.now()-lastHire < 120000) return alert("Wait before hiring again");
+  modal.style.display="flex";
+  hireList.innerHTML="<b>Hire Workers</b>";
+
+  for(let i=0;i<3;i++){
+    const age = Math.floor(Math.random()*43)+18;
+    const eff = Math.floor(Math.random()*50)+50;
+    const name = rand(firstNames)+" "+rand(lastNames);
+
+    const div=document.createElement("div");
+    div.innerHTML = `
+      <p><b>${name}</b><br>
+      Age: ${age}<br>
+      Efficiency: ${eff}</p>
+      <button>Hire</button>
+    `;
+
+    div.querySelector("button").onclick=()=>{
+      modal.style.display="none";
+      lastHire=Date.now();
+      spawnWorker(name, eff);
+    };
+
+    hireList.appendChild(div);
+  }
+};
+
+function spawnWorker(name, eff){
+  const w=document.createElement("div");
+  w.className="worker-emoji";
+  w.textContent="👷";
+
+  let boosted=false;
+
+  w.onclick = ()=>{
+    document.querySelectorAll(".worker-panel").forEach(p=>p.remove());
+
+    const panel=document.createElement("div");
+    panel.className="worker-panel";
+    panel.innerHTML = `
+      <b>${name}</b><br>
+      Efficiency: ${eff}<br>
+      Status: ${boosted?"Boosted":"Normal"}<br>
+      <button class="fire">Fire</button>
+      <button class="promo">Promote</button>
+      <button class="comp">Compliment</button>
+    `;
+
+    panel.querySelector(".fire").onclick=()=>{ updateMoney(-40); w.remove(); panel.remove(); };
+    panel.querySelector(".promo").onclick=()=>{ updateMoney(-300); eff+=20; };
+    panel.querySelector(".comp").onclick=()=>{
+      if(boosted) return;
+      boosted=true;
+      setTimeout(()=>boosted=false,300000);
+    };
+
+    w.appendChild(panel);
+  };
+
+  workersArea.appendChild(w);
+
+  setInterval(()=>updateMoney((Math.floor(Math.random()*25)+10)*(boosted?1.2:1)),30000);
+  setInterval(()=>updateMoney(-8),60000);
+}
+
+modal.onclick=e=>{ if(e.target===modal) modal.style.display="none"; };
+</script>
+</body>
+</html>
